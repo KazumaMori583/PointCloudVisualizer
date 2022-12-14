@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
+
 public class TestStreaming : MonoBehaviour
 {
     
@@ -17,28 +18,37 @@ public class TestStreaming : MonoBehaviour
     public int startTime;
     public int nowTime;
     public int processTime;
-    [SerializeField] private float interval = 2f;
+    [SerializeField] private float interval = 1f;
     [SerializeField] private float tmpTime = 0;
-    string[] urlList = new string[156];
-    int[] sumPointsList = new int[156];
+    int FrameCounts;
+    string[] urlList;
+    int[] sumPointsList;
     public int sumPoints;
+    double[] processingTime;
+    
+    private MeshFilter comp;
+
 
     // Start is called before the first frame update
     void Start()
     {
         string xmlURL = "http://172.16.51.34/test.xml";
         StartCoroutine("GetXmlRequest", xmlURL);
+        comp = GetComponent<MeshFilter>();
+
     }
 
     void Update(){
         tmpTime += Time.deltaTime;
         if (tmpTime >= interval){
-            string URL = urlList[now_i];
             sumPoints = sumPointsList[now_i];
             Debug.Log("----------------------------------");
-            Debug.Log("now Load URL : " + URL);
-            StartCoroutine("TestGetRequest", URL);  
-            now_i = (now_i+1) % 15;
+            Debug.Log("now Load URL : " + urlList[now_i]);
+            StartCoroutine("TestGetRequest", urlList[now_i]);  
+            now_i = (now_i+1) % FrameCounts;
+            if(now_i == FrameCounts-1){
+                Debug.Log("-----------------------------------Ave process Time:" + processingTime.Average());
+            }
             tmpTime =0;
         }
     }
@@ -61,12 +71,21 @@ public class TestStreaming : MonoBehaviour
 
             XElement xml = XElement.Parse(serverString);
             IEnumerable<XElement> xelements = xml.Elements("Representation");
+
+            FrameCounts = int.Parse(xml.Attribute("FrameCounts").Value);
+            sumPointsList = new int[FrameCounts];
+            urlList = new string[FrameCounts];
+            processingTime = new double[FrameCounts];
+
+            Debug.Log(FrameCounts);
             int index = 0;
             foreach (XElement xelement in xelements){
                 sumPointsList[index] = int.Parse(xelement.Element("NumPoints").Value);
                 int id = int.Parse(xelement.Element("id").Value);
                 urlList[index] = xelement.Element("BaseURL").Value;
-                Debug.Log("id : " + id + "   Load sumPoints:" + sumPointsList[index] + "   BaseURL:" + urlList[index]);
+                if(index == FrameCounts-1){
+                    Debug.Log("id : " + id + "   Load sumPoints:" + sumPointsList[index] + "   BaseURL:" + urlList[index]);
+                }
                 index++;
             }
 
@@ -79,16 +98,15 @@ public class TestStreaming : MonoBehaviour
 
             Debug.Log("Load time for XML file :" + processTime + "ms");
             Debug.Log("----------------------------------");
-            for(int i = 0; i < urlList.Length ; i++){
-                Debug.Log(urlList[i]);
-            }
-            Debug.Log("----------------------------------");
         }
     }
 
     IEnumerator TestGetRequest(string url)
     {
-        startTime = DateTime.Now.Millisecond;
+        var sw = new System.Diagnostics.Stopwatch();
+        var swRTT = new System.Diagnostics.Stopwatch();
+        sw.Start();
+        swRTT.Start();
         //Prepare Get by URL
         UnityWebRequest webRequest = UnityWebRequest.Get(url);
         yield return webRequest.SendWebRequest();
@@ -98,22 +116,16 @@ public class TestStreaming : MonoBehaviour
         }
         else
         {
+            swRTT.Stop();
+            Debug.Log("RTT:" + swRTT.Elapsed.TotalMilliseconds);
             //Successful Comunication 
-            Debug.Log("Connect with  server!!!");
-            byte[] results = webRequest.downloadHandler.data;
-
-            string serverString = System.Text.Encoding.ASCII.GetString(results);
-
-            Mesh mesh = Visualizer.createMesh(sumPoints, serverString);
-            // Mesh mesh = OldVisualizer.createMesh(serverString);
-            GetComponent<MeshFilter>().mesh = mesh;
-
-            nowTime = DateTime.Now.Millisecond;
-            if(startTime > nowTime){
-                processTime = nowTime+(1000-startTime);
-            }else{
-                processTime = nowTime-startTime;
-            }
+            // char[] del = {'\n', ' '};
+            var rawPointsList = webRequest.downloadHandler.text.Split(' '); 
+            comp.mesh = VisualizerParallel.createMesh(sumPoints, rawPointsList);
+            // Mesh mesh = VisualizerGPU.createMesh(sumPoints,webRequest.downloadHandler.text);
+            
+            sw.Stop();
+            processingTime[now_i] = sw.Elapsed.TotalMilliseconds;
             Debug.Log("process time:" + processTime + "ms");
         }
     }

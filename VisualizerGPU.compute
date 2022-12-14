@@ -1,0 +1,39 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+RWStructuredBuffer<float> rawPointsBuffer;
+RWStructuredBuffer<int> indecies;
+RWStructuredBuffer<float3> posBuffer;
+RWStructuredBuffer<float4> colBuffer;
+
+float2 position;
+float time;
+
+[numthreads(8,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    posbuffer[id.x] = 
+    colbuffer[id.x] =
+    position.x += cos(time *10) * 0.1;
+    position.y += sin(time *10) * 0.1;
+    ResultBuffer[0] = float2(position.x, position.y);
+
+    for(int i = 0; i < sumPoints; i++) {
+        int j = i*7;
+        indecies[i] = i;
+        posBuffer[i] = new Vector3(
+            float.Parse(rawPointsList[j]),
+            float.Parse(rawPointsList[j+1]),
+            float.Parse(rawPointsList[j+2])
+            );
+        colBuffer[i] = new Color(
+            float.Parse(rawPointsList[j+3]),
+            float.Parse(rawPointsList[j+4]),
+            float.Parse(rawPointsList[j+5]),
+            float.Parse(rawPointsList[j+6])
+            );
+    }
+}
