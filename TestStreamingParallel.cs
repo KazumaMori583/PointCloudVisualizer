@@ -140,7 +140,7 @@ public class TestStreamingParallel : MonoBehaviour
     IEnumerator createMesh(){
         // char[] del = {'\n', ' '};
         // var rawPointsList = ptclString.Split(del);
-
+        Debug.Log(rawPointsList);
         int[] indecies = new int[sumPoints];
         Vector3[] points = new Vector3[sumPoints];
         Color32[] colors = new Color32[sumPoints];
