@@ -15,6 +15,7 @@ public class AdaptivePointCloudStreaming : MonoBehaviour
     Queue<Color32[]> colorsQue;
     Queue<int[]> indicesPointsQue;
 
+
     //Network manager
     string serverPointCloudString;
     //Visualizer
