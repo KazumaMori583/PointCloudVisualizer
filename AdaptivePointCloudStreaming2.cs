@@ -27,9 +27,12 @@ public class AdaptivePointCloudStreaming2 : MonoBehaviour
 
     // Xml file Info
     int frameCounts;
-    int[] representationIdArray;
-    string[] urlArray;
-    int[] sumPointsArray;
+
+    int[] frameIdArray;
+    string[,] urlArray;
+    int[,] sumPointsArray;
+    // float[][] voxelSizeArray;
+    // int[,] representationIdArray;
     double[] processingTimeArray;
 
     //HTTP Thread
@@ -70,14 +73,15 @@ public class AdaptivePointCloudStreaming2 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Debug.LogWarning("FPS:" + swFPS.Elapsed.TotalMilliseconds +"ms");
+        // Debug.LogWarning("FPS:" + swFPS.Elapsed.TotalMilliseconds +"ms");
         bufferCount = pointsQue.Count;
         swFPS.Stop();
 
         if(xmlStatus){
-            string urlPointCloudTxtNow = urlArray[GetRepresentationId];
-            int sumPointsNow = sumPointsArray[GetRepresentationId];
-            int representationIdNow =representationIdArray[GetRepresentationId];
+            string urlPointCloudTxtNow = urlArray[GetRepresentationId,1];
+            int sumPointsNow = sumPointsArray[GetRepresentationId,1];
+            int representationIdNow =frameIdArray[GetRepresentationId];
+
             if(!joinBufferFlag){
                 Debug.Log("----- Join Time -----" + GetRepresentationId);
                 if(GetRepresentationId < bufferSize){
@@ -127,24 +131,35 @@ public class AdaptivePointCloudStreaming2 : MonoBehaviour
         else
         {
             XElement xml = XElement.Parse(webRequest.downloadHandler.text);
-            IEnumerable<XElement> xelements = xml.Elements("Representation");
+            XElement MPDElement = xml.Element("MPD");
 
             frameCounts = int.Parse(xml.Attribute("FrameCounts").Value);
-            sumPointsArray = new int[frameCounts];
-            urlArray = new string[frameCounts];
-            processingTimeArray = new double[frameCounts];
-            representationIdArray = new int[frameCounts];
+            Debug.Log("FrameCounts : " + frameCounts);
+            sumPointsArray = new int[frameCounts,3];
+            urlArray = new string[frameCounts,3];
+            frameIdArray = new int[frameCounts];
 
-            foreach (XElement xelement in xelements){
-                int index = int.Parse(xelement.Element("id").Value);
-                sumPointsArray[index] = int.Parse(xelement.Element("NumPoints").Value);
-                representationIdArray[index] = index;
-                urlArray[index] = xelement.Element("BaseURL").Value;
+            // processingTimeArray = new double[frameCounts];
+            // representationIdArray = new int[frameCounts,3];
+
+
+            IEnumerable<XElement> AdaptationSetXElements = MPDElement.Elements("AdaptationSet");
+
+            foreach (var AdaptationSetXElement in AdaptationSetXElements){
+                int frameId = int.Parse(AdaptationSetXElement.Attribute("FrameId").Value);
+                frameIdArray[frameId] = frameId;
+
+                IEnumerable<XElement> RepresentationXElements = AdaptationSetXElement.Elements("Representation");
+                foreach (var RepresentationXElement in RepresentationXElements){
+                    int index = int.Parse(RepresentationXElement.Attribute("id").Value);
+                    sumPointsArray[frameId,index] = int.Parse(RepresentationXElement.Attribute("SumPoints").Value);
+                    urlArray[frameId,index] = RepresentationXElement.Element("BaseURL").Value;
+                }
 
                 //Debug last parameter in test
-                if(index == frameCounts-1){
-                    Debug.Log(" Loaded XML id : " + representationIdArray[index] + "   Load sumPoints:" + sumPointsArray[index] + "   BaseURL:" + urlArray[index]);
-                }
+                // if(frameId == frameCounts-1){
+                    Debug.Log(" Loaded XML id : " + frameIdArray[frameId] + "   Load sumPoints:" + sumPointsArray[frameId,1] + "   BaseURL:" + urlArray[frameId,1]);
+                // }
             }
             xmlStatus = true;
             GetRepresentationId = 0;
