@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 //Need Using XElement
 using System.Xml.Linq;
 
-public class AdaptivePointCloudStreaming : MonoBehaviour
+public class AdaptivePointCloudStreaming2 : MonoBehaviour
 {
 /*-------------------------    Parameters   -----------------------------*/
     //Server Info
