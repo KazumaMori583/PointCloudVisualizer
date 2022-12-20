@@ -131,7 +131,7 @@ public class AdaptivePointCloudStreaming2 : MonoBehaviour
         else
         {
             XElement xml = XElement.Parse(webRequest.downloadHandler.text);
-            XElement MPDElement = xml.Element("MPD");
+            // XElement MPDElement = xml.Element("MPD");
 
             frameCounts = int.Parse(xml.Attribute("FrameCounts").Value);
             Debug.Log("FrameCounts : " + frameCounts);
@@ -143,7 +143,7 @@ public class AdaptivePointCloudStreaming2 : MonoBehaviour
             // representationIdArray = new int[frameCounts,3];
 
 
-            IEnumerable<XElement> AdaptationSetXElements = MPDElement.Elements("AdaptationSet");
+            IEnumerable<XElement> AdaptationSetXElements = xml.Elements("AdaptationSet");
 
             foreach (var AdaptationSetXElement in AdaptationSetXElements){
                 int frameId = int.Parse(AdaptationSetXElement.Attribute("FrameId").Value);
